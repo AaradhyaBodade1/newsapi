@@ -1,0 +1,15 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file: backend/.env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+# Talks to your cloud Supabase project (free tier) — there's no local Postgres container here.
+# This single service runs the admin API and, on an in-process scheduler, the
+# ingest/generate/publish worker cycle (see backend/README.md).
+#
+# The frontend isn't containerized here — it's a Next.js app meant to run with `npm run dev`
+# locally and deploy to Netlify (see frontend/README.md).
