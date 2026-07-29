@@ -11,6 +11,7 @@ interface CredentialMeta {
 
 const KNOWN_FIELDS: { provider: string; key_name: string; label: string; secret: boolean }[] = [
   { provider: "groq", key_name: "api_key", label: "Groq API key", secret: true },
+  { provider: "gemini", key_name: "api_key", label: "Gemini API key (Groq fallback)", secret: true },
   { provider: "unsplash", key_name: "access_key", label: "Unsplash Access Key", secret: true },
   { provider: "smtp", key_name: "host", label: "SMTP host", secret: false },
   { provider: "smtp", key_name: "port", label: "SMTP port", secret: false },
