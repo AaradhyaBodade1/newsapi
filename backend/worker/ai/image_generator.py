@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import random
-import time
-from urllib.parse import quote
+from pathlib import Path
 
 import httpx
 
@@ -11,42 +9,13 @@ from common.credentials_store import get_unsplash_key
 
 _UNSPLASH_SEARCH_URL = "https://api.unsplash.com/search/photos"
 
-_SAFETY_SUFFIX = (
-    " Photorealistic photograph, natural lighting, real-world detail, DSLR quality, not an "
-    "illustration or painting. No readable text or logos, no real identifiable public figures, "
-    "safe for work, high quality."
-)
-
-# Pollinations.ai: free, no API key required. Returns the generated image
-# directly as the response body.
-_POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt"
-
-# Free-tier rate limit: pace requests so a run of several articles in a row
-# doesn't trip a 429, rather than only backing off after already being throttled.
-_MIN_SECONDS_BETWEEN_REQUESTS = 3.0
-_last_request_at: float = 0.0
+# Final fallback when neither the source's own image nor an Unsplash match is
+# found — a fixed branded graphic so a post is never left with no image at all.
+_PLACEHOLDER_PATH = Path(__file__).resolve().parent.parent / "assets" / "placeholder.jpg"
 
 
-def generate_image(image_prompt: str) -> bytes:
-    prompt = quote((image_prompt + _SAFETY_SUFFIX)[:4000])
-
-    def _call() -> bytes:
-        global _last_request_at
-        wait = _MIN_SECONDS_BETWEEN_REQUESTS - (time.monotonic() - _last_request_at)
-        if wait > 0:
-            time.sleep(wait)
-        _last_request_at = time.monotonic()
-
-        # Random seed so a retry (or two articles with a similar prompt) doesn't
-        # hit Pollinations' cache and return the same image.
-        params = {"width": 1024, "height": 1024, "nologo": "true", "seed": random.randint(0, 2**31)}
-        response = httpx.get(f"{_POLLINATIONS_BASE_URL}/{prompt}", params=params, timeout=60)
-        response.raise_for_status()
-        return response.content
-
-    return call_with_retry(
-        _call, max_attempts=4, backoff_base_seconds=4, context="Pollinations image generation"
-    )
+def get_placeholder_image() -> bytes:
+    return _PLACEHOLDER_PATH.read_bytes()
 
 
 def fetch_source_image(image_url: str) -> bytes:

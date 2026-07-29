@@ -1,5 +1,5 @@
 """Small retry-with-backoff helper used for every outbound network call
-(RSS fetch, Groq, Pollinations, image upload) so transient failures don't
+(RSS fetch, Groq/Gemini, Unsplash, image upload) so transient failures don't
 fail a whole cycle or a whole article."""
 from __future__ import annotations
 

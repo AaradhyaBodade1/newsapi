@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from dateutil import parser as dateutil_parser
 from openai import RateLimitError
 
-from worker.ai.image_generator import fetch_source_image, generate_image
+from worker.ai.image_generator import fetch_source_image, fetch_unsplash_image, get_placeholder_image
 from worker.ai.quality_checks import evaluate
 from worker.ai.text_generator import generate_content
 from worker.db import repositories as repo
@@ -113,7 +113,7 @@ def _process_article(article_row: dict, quality_threshold: float, manual_approva
             counts["errors_count"] += 1
             return
 
-        image_bytes = _get_image_bytes(article.image_url, generated.hashtags, category_name, generated.image_prompt)
+        image_bytes = _get_image_bytes(article.image_url, generated.hashtags, category_name)
         image_url = upload_image(image_bytes, article_id)
 
         manual_approval = manual_approval_default or repo.get_source_manual_approval(article_row.get("source_id"))
@@ -150,13 +150,11 @@ def _process_article(article_row: dict, quality_threshold: float, manual_approva
         counts["errors_count"] += 1
 
 
-def _get_image_bytes(
-    source_image_url: str | None, hashtags: list[str], category_name: str | None, image_prompt: str
-) -> bytes:
+def _get_image_bytes(source_image_url: str | None, hashtags: list[str], category_name: str | None) -> bytes:
     """Three-tier fallback: the source publisher's own article image (most
     specific), then a real Unsplash stock photo searched by the story's main
-    keyword, then AI generation as a last resort so a post is never left
-    with no image at all."""
+    keyword, then a fixed branded placeholder so a post is never left with
+    no image at all."""
     if source_image_url:
         try:
             return fetch_source_image(source_image_url)
@@ -169,9 +167,9 @@ def _get_image_bytes(
         if unsplash_bytes:
             return unsplash_bytes
     except Exception:
-        logger.warning("Unsplash search failed for '%s', falling back to AI generation", keyword)
+        logger.warning("Unsplash search failed for '%s', falling back to placeholder image", keyword)
 
-    return generate_image(image_prompt)
+    return get_placeholder_image()
 
 
 def _publish_post(post: dict, max_retry_attempts: int, counts: dict) -> None:
