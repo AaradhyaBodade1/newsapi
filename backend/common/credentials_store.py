@@ -15,6 +15,7 @@ from common.supabase_client import get_supabase
 # Maps (provider, key_name) -> fallback env var name
 _ENV_FALLBACKS: dict[tuple[str, str], str] = {
     (CredentialProvider.GROQ, "api_key"): "GROQ_API_KEY",
+    (CredentialProvider.GEMINI, "api_key"): "GEMINI_API_KEY",
     (CredentialProvider.UNSPLASH, "access_key"): "UNSPLASH_ACCESS_KEY",
     (CredentialProvider.SMTP, "host"): "SMTP_HOST",
     (CredentialProvider.SMTP, "port"): "SMTP_PORT",
@@ -70,3 +71,10 @@ def get_unsplash_key() -> str | None:
     """Unlike Groq, Unsplash is optional — the image pipeline falls back to
     AI generation when this isn't configured, so no exception here."""
     return get_credential(CredentialProvider.UNSPLASH, "access_key")
+
+
+def get_gemini_key() -> str | None:
+    """Optional same-day fallback used only when Groq's free-tier daily
+    token cap is hit — no exception here, callers fall back to leaving the
+    article for retry on the next cycle when this isn't configured."""
+    return get_credential(CredentialProvider.GEMINI, "api_key")

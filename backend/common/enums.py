@@ -46,6 +46,7 @@ class PublishStatus(str, Enum):
 
 class CredentialProvider(str, Enum):
     GROQ = "groq"
+    GEMINI = "gemini"
     UNSPLASH = "unsplash"
     SMTP = "smtp"
     WEBHOOK = "webhook"
