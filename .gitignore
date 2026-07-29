@@ -20,6 +20,7 @@ node_modules/
 out/
 .netlify/
 frontend/.env*.local
+*.tsbuildinfo
 
 # Logs
 *.log
