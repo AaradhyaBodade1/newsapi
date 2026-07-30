@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import logging
 import re
@@ -22,6 +23,16 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 _WHITESPACE_RE = re.compile(r"\s+")
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _clean_source_text(text: str) -> str:
+    """RSS summaries (Times of India in particular) often embed raw <img>/<a>
+    thumbnail markup ahead of the actual text — strip tags and unescape
+    entities before this ever reaches a published post."""
+    text = _TAG_RE.sub(" ", text)
+    text = html.unescape(text)
+    return _WHITESPACE_RE.sub(" ", text).strip()
 
 
 def _call_model(client: OpenAI, model: str, system_prompt: str, user_message: str) -> dict:
@@ -57,10 +68,11 @@ def _build_source_fallback(article: Article, category_name: str | None) -> Gener
     reformats the source publisher's own title/summary into a post instead of
     leaving the article stuck until quota resets. Never includes the source
     URL — same as every other content path on this site."""
-    raw_text = (article.summary or article.raw_excerpt or "").strip()
-    paragraph = _WHITESPACE_RE.sub(" ", raw_text).strip()
+    title = _clean_source_text(article.title)
+    raw_text = article.summary or article.raw_excerpt or ""
+    paragraph = _clean_source_text(raw_text)
     if len(paragraph) < 40:
-        paragraph = _WHITESPACE_RE.sub(" ", f"{article.title}. {paragraph}").strip()
+        paragraph = _clean_source_text(f"{title}. {paragraph}")
 
     hashtags = ["IndiaNews"]
     if category_name:
@@ -69,8 +81,8 @@ def _build_source_fallback(article: Article, category_name: str | None) -> Gener
             hashtags.insert(0, tag)
 
     return GeneratedContent(
-        headline=article.title[:150],
-        caption=paragraph[:200] if len(paragraph) >= 10 else f"{article.title[:190]}.",
+        headline=title[:150],
+        caption=paragraph[:200] if len(paragraph) >= 10 else f"{title[:190]}.",
         summary=paragraph[:900],
         cta="Read more India news on Arka News",
         hashtags=hashtags,
